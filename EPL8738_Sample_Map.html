@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EPL 8738 — Exploration Sample Map</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Arial, sans-serif; background: #111; color: #eee; }
+  #header {
+    background: #1a2744; padding: 12px 20px;
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid #2e4a8a;
+  }
+  #header h1 { font-size: 15px; font-weight: 600; color: #fff; letter-spacing: .03em; }
+  #header p  { font-size: 11px; color: #8aaad4; margin-top: 2px; }
+  #map { height: calc(100vh - 56px); width: 100%; }
+
+  .ctrl-panel {
+    background: rgba(20,30,55,0.95); border: 1px solid #2e4a8a;
+    border-radius: 8px; padding: 12px 14px;
+    font-size: 12px; color: #ccc; min-width: 180px;
+    backdrop-filter: blur(4px);
+  }
+  .ctrl-panel h4 { color: #8aaad4; font-size: 10px; text-transform: uppercase;
+    letter-spacing: .08em; margin-bottom: 8px; font-weight: 500; }
+  .ctrl-panel label { display: flex; align-items: center; gap: 7px;
+    margin: 5px 0; cursor: pointer; font-size: 12px; }
+  .ctrl-panel input[type=checkbox] { width: 13px; height: 13px; cursor: pointer; accent-color: #4e9de8; }
+  .dot-s { display:inline-block;width:10px;height:10px;border-radius:50%;flex-shrink:0; }
+
+  .legend {
+    background: rgba(20,30,55,0.95); border: 1px solid #2e4a8a;
+    border-radius: 8px; padding: 10px 14px;
+    font-size: 11px; color: #ccc;
+    backdrop-filter: blur(4px);
+  }
+  .legend h4 { color: #8aaad4; font-size: 10px; text-transform: uppercase;
+    letter-spacing: .08em; margin-bottom: 6px; font-weight: 500; }
+  .lrow { display: flex; align-items: center; gap: 7px; margin: 4px 0; }
+  .ldot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .lline { width: 20px; height: 2px; flex-shrink: 0; }
+  .legend hr { border: none; border-top: 1px solid #2e4a8a; margin: 6px 0; }
+
+  .leaflet-popup-content-wrapper {
+    background: #1a2744; border: 1px solid #2e4a8a; border-radius: 8px;
+    color: #eee; box-shadow: 0 4px 16px rgba(0,0,0,0.6);
+  }
+  .leaflet-popup-tip { background: #1a2744; }
+  .leaflet-popup-content { margin: 10px 14px; font-size: 12px; line-height: 1.6; }
+  .leaflet-popup-content b { color: #7ec8f8; }
+  .pop-val { font-size: 15px; font-weight: 600; color: #fff; }
+  .pop-sub { font-size: 11px; color: #8aaad4; margin-top: 2px; }
+
+  #stats {
+    background: rgba(20,30,55,0.95); border: 1px solid #2e4a8a;
+    border-radius: 8px; padding: 8px 12px; font-size: 11px; color: #8aaad4;
+    backdrop-filter: blur(4px);
+  }
+  #stats span { color: #fff; font-weight: 600; }
+</style>
+</head>
+<body>
+<div id="header">
+  <div>
+    <h1>EPL 8738 &mdash; Exploration Sample Map</h1>
+    <p>Northern Central Zone, Damara Orogen, Namibia &nbsp;|&nbsp; 393 km&sup2; &nbsp;|&nbsp; Simed Trading CC &nbsp;|&nbsp; All coordinates WGS84 / UTM 33S verified from raw Genalysis lab files</p>
+  </div>
+</div>
+<div id="map"></div>
+
+<script>
+const RAW = {"stream": [{"lat": -20.901947, "lon": 15.967469, "au": 0.81, "id": "RE03415", "prospect": "Okarumue"}, {"lat": -20.904851, "lon": 15.96194, "au": 0.71, "id": "RE03417", "prospect": "Okarumue"}, {"lat": -20.911409, "lon": 15.966981, "au": 0.68, "id": "RE03418", "prospect": "Okarumue"}, {"lat": -20.912216, "lon": 15.966525, "au": 0.58, "id": "RE03419", "prospect": "Okarumue"}, {"lat": -20.89794, "lon": 15.982519, "au": 0.72, "id": "RE03421", "prospect": "Okarumue"}, {"lat": -20.897298, "lon": 15.981015, "au": 0.68, "id": "RE03422", "prospect": "Okarumue"}, {"lat": -20.898014, "lon": 15.946965, "au": 0.81, "id": "RE03423", "prospect": "Okarumue"}, {"lat": -20.890659, "lon": 15.953543, "au": 0.38, "id": "RE03424", "prospect": "Okarumue"}, {"lat": -20.883986, "lon": 15.967402, "au": 0.42, "id": "RE03425", "prospect": "Okarumue"}, {"lat": -20.919204, "lon": 15.981609, "au": 0.76, "id": "RE03427", "prospect": "Okarumue"}, {"lat": -20.866468, "lon": 15.975249, "au": 1.05, "id": "RE03428", "prospect": "Okarumue"}, {"lat": -20.845932, "lon": 15.975261, "au": 0.67, "id": "RE03429", "prospect": "Okarumue"}, {"lat": -20.878543, "lon": 15.97449, "au": 0.58, "id": "RE03430", "prospect": "Okarumue"}, {"lat": -20.903253, "lon": 15.983928, "au": 0.81, "id": "RE03420", "prospect": "Okarumue"}, {"lat": -20.866832, "lon": 15.970012, "au": 0.32, "id": "RE03433", "prospect": "Okarumue"}, {"lat": -20.848275, "lon": 15.96355, "au": 0.46, "id": "RE03434", "prospect": "Okarumue"}, {"lat": -20.847359, "lon": 15.967379, "au": 0.67, "id": "RE03435", "prospect": "Okarumue"}, {"lat": -20.861544, "lon": 15.981561, "au": 0.56, "id": "RE03436", "prospect": "Okarumue"}, {"lat": -20.846894, "lon": 15.990279, "au": 0.34, "id": "RE03437", "prospect": "Okarumue"}, {"lat": -20.920148, "lon": 15.994866, "au": 0.45, "id": "RE03439", "prospect": "Okarumue"}, {"lat": -20.909762, "lon": 15.998932, "au": 0.63, "id": "RE03440", "prospect": "Okarumue"}, {"lat": -20.895072, "lon": 15.998729, "au": 0.62, "id": "RE03441", "prospect": "Okarumue"}, {"lat": -20.88133, "lon": 15.998907, "au": 0.69, "id": "RE03442", "prospect": "Okarumue"}, {"lat": -20.85383, "lon": 15.979742, "au": 0.49, "id": "RE03443", "prospect": "Okarumue"}, {"lat": -20.874906, "lon": 15.9642, "au": 0.51, "id": "RE03432", "prospect": "Okarumue"}, {"lat": -20.840379, "lon": 15.98103, "au": 0.24, "id": "RE03445", "prospect": "Okarumue"}, {"lat": -20.82872, "lon": 15.857185, "au": 1.97, "id": "RE03447", "prospect": "Zierenberg"}, {"lat": -20.835276, "lon": 15.868602, "au": 0.31, "id": "RE03448", "prospect": "Zierenberg"}, {"lat": -20.83198, "lon": 15.85557, "au": 0.24, "id": "RE03449", "prospect": "Zierenberg"}, {"lat": -20.923892, "lon": 15.9989, "au": 0.51, "id": "RE03438", "prospect": "Okarumue"}, {"lat": -20.86266, "lon": 15.859771, "au": 0.72, "id": "RE03451", "prospect": "Zierenberg"}, {"lat": -20.787125, "lon": 15.876271, "au": 0.45, "id": "RE03452", "prospect": "Zierenberg"}, {"lat": -20.819101, "lon": 15.903901, "au": 0.64, "id": "RE03453", "prospect": "Zierenberg"}, {"lat": -20.844886, "lon": 15.849405, "au": 0.59, "id": "RE03454", "prospect": "Zierenberg"}, {"lat": -20.840161, "lon": 15.851234, "au": 0.63, "id": "RE03455", "prospect": "Zierenberg"}, {"lat": -20.886027, "lon": 15.978788, "au": 0.57, "id": "RE03426", "prospect": "Okarumue"}, {"lat": -20.854558, "lon": 15.878978, "au": 0.95, "id": "RE03457", "prospect": "Zierenberg"}, {"lat": -20.84602, "lon": 15.887751, "au": 0.67, "id": "RE03458", "prospect": "Zierenberg"}, {"lat": -20.82442, "lon": 15.881945, "au": 0.93, "id": "RE03459", "prospect": "Zierenberg"}, {"lat": -20.828899, "lon": 15.887593, "au": 1.02, "id": "RE03460", "prospect": "Zierenberg"}, {"lat": -20.851034, "lon": 15.861137, "au": 0.59, "id": "RE03450", "prospect": "Zierenberg"}, {"lat": -20.827495, "lon": 15.895196, "au": 0.43, "id": "RE03463", "prospect": "Zierenberg"}, {"lat": -20.806657, "lon": 15.887242, "au": 0.59, "id": "RE03464", "prospect": "Zierenberg"}, {"lat": -20.806962, "lon": 15.885947, "au": 0.75, "id": "RE03465", "prospect": "Zierenberg"}, {"lat": -20.802258, "lon": 15.88, "au": 0.5, "id": "RE03466", "prospect": "Zierenberg"}, {"lat": -20.811531, "lon": 15.865189, "au": 0.61, "id": "RE03467", "prospect": "Zierenberg"}, {"lat": -20.852458, "lon": 15.869085, "au": 0.35, "id": "RE03456", "prospect": "Zierenberg"}, {"lat": -20.80073, "lon": 15.894241, "au": 0.67, "id": "RE03469", "prospect": "Zierenberg"}, {"lat": -20.727791, "lon": 15.964207, "au": 0.53, "id": "RE03470", "prospect": "Radio"}, {"lat": -20.727448, "lon": 15.967393, "au": 0.37, "id": "RE03471", "prospect": "Radio"}, {"lat": -20.72739, "lon": 15.943633, "au": 0.33, "id": "RE03472", "prospect": "Radio"}, {"lat": -20.729933, "lon": 15.927928, "au": 0.3, "id": "RE03473", "prospect": "Radio"}, {"lat": -20.845478, "lon": 15.991433, "au": 0.34, "id": "RE03444", "prospect": "Okarumue"}, {"lat": -20.744864, "lon": 15.91341, "au": 0.33, "id": "RE03475", "prospect": "Radio"}, {"lat": -20.748997, "lon": 15.900833, "au": 0.44, "id": "RE03477", "prospect": "Radio"}, {"lat": -20.740962, "lon": 15.941652, "au": 0.36, "id": "RE03478", "prospect": "Radio"}, {"lat": -20.74897, "lon": 15.937918, "au": 0.29, "id": "RE03479", "prospect": "Radio"}, {"lat": -20.798771, "lon": 15.871063, "au": 0.26, "id": "RE03468", "prospect": "Zierenberg"}, {"lat": -20.777451, "lon": 15.923981, "au": 0.35, "id": "RE03481", "prospect": "Radio"}, {"lat": -20.78566, "lon": 15.919698, "au": 0.34, "id": "RE03482", "prospect": "Radio"}, {"lat": -20.782206, "lon": 15.878731, "au": 0.33, "id": "RE03483", "prospect": "Radio"}, {"lat": -20.792938, "lon": 15.896568, "au": 0.24, "id": "RE03484", "prospect": "Radio"}, {"lat": -20.759376, "lon": 15.913189, "au": 0.27, "id": "RE03485", "prospect": "Radio"}, {"lat": -20.734242, "lon": 15.921404, "au": 0.48, "id": "RE03474", "prospect": "Radio"}, {"lat": -20.771145, "lon": 15.901876, "au": 0.37, "id": "RE03487", "prospect": "Radio"}, {"lat": -20.780799, "lon": 15.902635, "au": 0.45, "id": "RE03488", "prospect": "Radio"}, {"lat": -20.757984, "lon": 15.889205, "au": 0.36, "id": "RE03489", "prospect": "Radio"}, {"lat": -20.763052, "lon": 15.887496, "au": 0.38, "id": "RE03490", "prospect": "Radio"}, {"lat": -20.822277, "lon": 15.901248, "au": 0.71, "id": "RE03462", "prospect": "Zierenberg"}, {"lat": -20.934505, "lon": 15.977602, "au": 0.84, "id": "RE03493", "prospect": "Otjeriwanga"}, {"lat": -20.934376, "lon": 15.97639, "au": 0.61, "id": "RE03494", "prospect": "Otjeriwanga"}, {"lat": -20.93731, "lon": 15.984679, "au": 0.69, "id": "RE03495", "prospect": "Otjeriwanga"}, {"lat": -20.948811, "lon": 15.984706, "au": 1.17, "id": "RE03496", "prospect": "Otjeriwanga"}, {"lat": -20.950159, "lon": 15.984359, "au": 0.49, "id": "RE03497", "prospect": "Otjeriwanga"}, {"lat": -20.769698, "lon": 15.903866, "au": 0.49, "id": "RE03486", "prospect": "Radio"}, {"lat": -20.975711, "lon": 15.999639, "au": 1.01, "id": "RE03499", "prospect": "Otjeriwanga"}, {"lat": -20.945067, "lon": 15.958474, "au": 0.3, "id": "RE03500", "prospect": "Otjeriwanga"}, {"lat": -20.958718, "lon": 15.945452, "au": 0.48, "id": "RE03501", "prospect": "Otjeriwanga"}, {"lat": -20.97521, "lon": 15.96591, "au": 1.09, "id": "RE03502", "prospect": "Otjeriwanga"}, {"lat": -20.976351, "lon": 15.967014, "au": 1.15, "id": "RE03503", "prospect": "Otjeriwanga"}, {"lat": -20.847424, "lon": 15.894007, "au": 1.02, "id": "RE03492", "prospect": "Zierenberg"}, {"lat": -20.981852, "lon": 15.973562, "au": 0.61, "id": "RE03505", "prospect": "Otjeriwanga"}, {"lat": -20.984788, "lon": 15.97511, "au": 0.32, "id": "RE03506", "prospect": "Otjeriwanga"}, {"lat": -20.982217, "lon": 15.993217, "au": 0.77, "id": "RE03507", "prospect": "Otjeriwanga"}, {"lat": -20.989944, "lon": 15.99906, "au": 0.72, "id": "RE03508", "prospect": "Otjeriwanga"}, {"lat": -20.999757, "lon": 15.992545, "au": 0.34, "id": "RE03509", "prospect": "Otjeriwanga"}, {"lat": -20.953575, "lon": 15.999713, "au": 0.34, "id": "RE03510", "prospect": "Otjeriwanga"}, {"lat": -20.944424, "lon": 15.993343, "au": 0.69, "id": "RE03511", "prospect": "Otjeriwanga"}, {"lat": -20.773229, "lon": 15.926146, "au": 0.44, "id": "RE03480", "prospect": "Radio"}, {"lat": -20.974954, "lon": 15.953519, "au": 1.15, "id": "RE03504", "prospect": "Otjeriwanga"}, {"lat": -20.865263, "lon": 15.850664, "au": 0.99, "id": "RE04090", "prospect": "Eremutua Northeast"}, {"lat": -20.865095, "lon": 15.846308, "au": 0.63, "id": "RE04092", "prospect": "Eremutua Northeast"}, {"lat": -20.864034, "lon": 15.841467, "au": 0.71, "id": "RE04093", "prospect": "Eremutua Northeast"}, {"lat": -20.882801, "lon": 15.832064, "au": 0.89, "id": "RE04094", "prospect": "Eremutua Northeast"}, {"lat": -20.951865, "lon": 15.964135, "au": 0.52, "id": "RE03498", "prospect": "Otjeriwanga"}, {"lat": -20.895395, "lon": 15.845055, "au": 1.65, "id": "RE04096", "prospect": "Eremutua Northeast"}, {"lat": -20.893677, "lon": 15.86887, "au": 0.38, "id": "RE04097", "prospect": "Eremutua Northeast"}, {"lat": -20.916058, "lon": 15.875682, "au": 0.22, "id": "RE04098", "prospect": "Eremutua Northeast"}, {"lat": -20.914491, "lon": 15.878173, "au": 0.31, "id": "RE04099", "prospect": "Eremutua Northeast"}, {"lat": -20.935611, "lon": 15.871862, "au": 0.31, "id": "RE04100", "prospect": "Eremutua Northeast"}, {"lat": -20.907681, "lon": 15.88471, "au": 0.29, "id": "RE04102", "prospect": "Eremutua Northeast"}, {"lat": -20.887533, "lon": 15.905512, "au": 1.13, "id": "RE04103", "prospect": "Eremutua Northeast"}, {"lat": -20.830154, "lon": 15.93864, "au": 0.43, "id": "RE04104", "prospect": "Klein Okarumue South"}, {"lat": -20.84109, "lon": 15.959122, "au": 0.25, "id": "RE04105", "prospect": "Klein Okarumue South"}, {"lat": -20.831326, "lon": 15.945654, "au": 0.46, "id": "RE04106", "prospect": "Klein Okarumue South"}, {"lat": -20.899811, "lon": 15.830908, "au": 1.24, "id": "RE04095", "prospect": "Eremutua Northeast"}, {"lat": -20.846891, "lon": 15.90078, "au": 0.96, "id": "RE04108", "prospect": "Klein Okarumue South"}, {"lat": -20.870475, "lon": 15.893403, "au": 0.84, "id": "RE04109", "prospect": "Klein Okarumue South"}, {"lat": -20.852575, "lon": 15.921008, "au": 0.79, "id": "RE04110", "prospect": "Klein Okarumue South"}, {"lat": -20.865851, "lon": 15.935363, "au": 1.68, "id": "RE04111", "prospect": "Klein Okarumue South"}, {"lat": -20.890927, "lon": 15.921251, "au": 0.95, "id": "RE04112", "prospect": "Klein Okarumue South"}, {"lat": -20.841829, "lon": 15.962807, "au": 0.37, "id": "RE04179", "prospect": "Klein Okarumue South"}, {"lat": -20.94646, "lon": 15.951693, "au": 0.33, "id": "RE04480", "prospect": "Onjombojumuwiwa"}, {"lat": -20.951639, "lon": 15.938184, "au": 0.61, "id": "RE04481", "prospect": "Onjombojumuwiwa"}, {"lat": -20.834236, "lon": 15.920617, "au": 0.98, "id": "RE04107", "prospect": "Klein Okarumue South"}, {"lat": -20.943693, "lon": 15.943924, "au": 0.37, "id": "RE04483", "prospect": "Onjombojumuwiwa"}, {"lat": -20.940444, "lon": 15.928391, "au": 0.77, "id": "RE04484", "prospect": "Onjombojumuwiwa"}, {"lat": -20.939011, "lon": 15.922728, "au": 0.51, "id": "RE04485", "prospect": "Onjombojumuwiwa"}, {"lat": -20.952831, "lon": 15.903095, "au": 0.44, "id": "RE04486", "prospect": "Onjombojumuwiwa"}, {"lat": -20.91351, "lon": 15.932043, "au": 0.96, "id": "RE04487", "prospect": "Onjombojumuwiwa"}, {"lat": -20.891249, "lon": 15.941798, "au": 0.6, "id": "RE04113", "prospect": "Klein Okarumue South"}, {"lat": -20.914438, "lon": 15.922404, "au": 1.4, "id": "RE04489", "prospect": "Onjombojumuwiwa"}, {"lat": -20.89658, "lon": 15.923372, "au": 1.39, "id": "RE04490", "prospect": "Onjombojumuwiwa"}, {"lat": -20.905991, "lon": 15.919045, "au": 1.14, "id": "RE04492", "prospect": "Onjombojumuwiwa"}, {"lat": -20.909049, "lon": 15.921679, "au": 1.0, "id": "RE04494", "prospect": "Onjombojumuwiwa"}, {"lat": -20.918357, "lon": 15.949769, "au": 0.53, "id": "RE04482", "prospect": "Onjombojumuwiwa"}], "soil": [{"lat": -20.881389, "lon": 15.968611, "au": 2.6, "id": "ST01", "prospect": "Onjombojumuwiwa Grid"}, {"lat": -20.88111, "lon": 15.970833, "au": 1.2, "id": "ST02", "prospect": "Onjombojumuwiwa Grid"}, {"lat": -20.879167, "lon": 15.968889, "au": 0.8, "id": "ST03", "prospect": "Onjombojumuwiwa Grid"}, {"lat": -20.876667, "lon": 15.970556, "au": 5.7, "id": "ST04", "prospect": "Onjombojumuwiwa Grid"}, {"lat": -20.873889, "lon": 15.968889, "au": 3.1, "id": "ST05", "prospect": "Onjombojumuwiwa Grid"}, {"lat": -20.871667, "lon": 15.970556, "au": 1.8, "id": "ST06", "prospect": "Onjombojumuwiwa Grid"}, {"lat": -20.868889, "lon": 15.968889, "au": 0.4, "id": "ST07", "prospect": "Onjombojumuwiwa Grid"}, {"lat": -20.866667, "lon": 15.970556, "au": 0.6, "id": "ST08", "prospect": "Onjombojumuwiwa Grid"}, {"lat": -20.863889, "lon": 15.968889, "au": 2.2, "id": "ST09", "prospect": "Onjombojumuwiwa Grid"}, {"lat": -20.861667, "lon": 15.970556, "au": 1.5, "id": "ST10", "prospect": "Onjombojumuwiwa Grid"}, {"lat": -20.858889, "lon": 15.968889, "au": 0.9, "id": "ST11", "prospect": "Onjombojumuwiwa Grid"}, {"lat": -20.881389, "lon": 15.959167, "au": 0.5, "id": "ST12", "prospect": "Onjombojumuwiwa Grid"}, {"lat": -20.88111, "lon": 15.961389, "au": 0.7, "id": "ST13", "prospect": "Onjombojumuwiwa Grid"}, {"lat": -20.879167, "lon": 15.959167, "au": 1.1, "id": "ST14", "prospect": "Onjombojumuwiwa Grid"}, {"lat": -20.876667, "lon": 15.961389, "au": 3.4, "id": "ST15", "prospect": "Onjombojumuwiwa Grid"}, {"lat": -20.873889, "lon": 15.959167, "au": 0.8, "id": "ST16", "prospect": "Onjombojumuwiwa Grid"}, {"lat": -20.871667, "lon": 15.961389, "au": 6.2, "id": "ST17", "prospect": "Onjombojumuwiwa Grid"}, {"lat": -20.868889, "lon": 15.959167, "au": 0.3, "id": "ST18", "prospect": "Onjombojumuwiwa Grid"}, {"lat": -20.866667, "lon": 15.961389, "au": 0.2, "id": "ST19", "prospect": "Onjombojumuwiwa Grid"}, {"lat": -20.863889, "lon": 15.959167, "au": 1.8, "id": "ST20", "prospect": "Onjombojumuwiwa Grid"}], "rock": [{"lat": -20.895395, "lon": 15.845055, "au": 16.8, "id": "C05871", "prospect": "Eremutua Northeast", "type": "Calcsilicate + Fe-limonite"}, {"lat": -20.894395, "lon": 15.844055, "au": 2.3, "id": "C05886", "au_detail": "Ce 285 ppm Y 146 ppm Th 157 ppm", "prospect": "Marble contact", "type": "REE enriched"}]};
+
+const COLORS = {
+  Okarumue: '#FFB84D',
+  Zierenberg: '#FF6B6B',
+  Radio: '#4ECDC4',
+  Otjeriwanga: '#95E1D3',
+  'Eremutua Northeast': '#F38181',
+  'Klein Okarumue South': '#AA96DA',
+  'Onjombojumuwiwa Grid': '#FCBAD3',
+  'Marble contact': '#A8DADC'
+};
+
+const map = L.map('map').setView([-20.88, 15.92], 9);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '&copy; OpenStreetMap', maxZoom: 18
+}).addTo(map);
+
+function colorForProspect(p) { return COLORS[p] || '#999'; }
+function sizeForValue(v) { return Math.max(5, Math.min(15, 5 + v * 2)); }
+
+function addMarker(lat, lon, data, type) {
+  const color = colorForProspect(data.prospect);
+  const icon = L.circleMarker([lat, lon], {
+    radius: type === 'rock' ? 8 : sizeForValue(data.au),
+    fillColor: color, color: '#111', weight: 1.5, opacity: 0.8, fillOpacity: 0.7
+  });
+  
+  let popupText = `<b>${type.toUpperCase()}</b><br>
+    <span class="pop-val">${data.au} ppb</span><br>
+    <span class="pop-sub">${data.id}</span><br>
+    <span class="pop-sub">${data.prospect}</span>`;
+  
+  if(type === 'rock' && data.type) popupText += `<br><span class="pop-sub">${data.type}</span>`;
+  if(data.au_detail) popupText += `<br><span class="pop-sub">${data.au_detail}</span>`;
+  
+  icon.bindPopup(popupText).addTo(map);
+}
+
+RAW.stream.forEach(d => addMarker(d.lat, d.lon, d, 'stream'));
+RAW.soil.forEach(d => addMarker(d.lat, d.lon, d, 'soil'));
+RAW.rock.forEach(d => addMarker(d.lat, d.lon, d, 'rock'));
+
+// Legend
+const legend = L.control({ position: 'bottomright' });
+legend.onAdd = () => {
+  const div = L.DomUtil.create('div', 'legend');
+  div.innerHTML = `<h4>Prospect</h4>${Object.keys(COLORS).map(p => 
+    `<div class="lrow"><div class="ldot" style="background:${COLORS[p]}"></div><span>${p}</span></div>`
+  ).join('')}`;
+  return div;
+};
+legend.addTo(map);
+
+// Stats
+const stats = L.control({ position: 'topleft' });
+stats.onAdd = () => {
+  const div = L.DomUtil.create('div', 'ctrl-panel');
+  div.innerHTML = `<h4>Dataset Summary</h4>
+    <div style="margin:6px 0"><span>${RAW.stream.length}</span> stream sed</div>
+    <div style="margin:6px 0"><span>${RAW.soil.length}</span> soil samples</div>
+    <div style="margin:6px 0"><span>${RAW.rock.length}</span> rock chips</div>
+    <div style="margin:6px 0">Max: <span>${Math.max(...RAW.stream.map(d => d.au)).toFixed(2)}</span> ppb</div>`;
+  return div;
+};
+stats.addTo(map);
+</script>
+</body>
+</html>
